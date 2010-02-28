@@ -27,7 +27,7 @@ def iif_stoacct(s):
 
 	Here's a sample line from the IIF export I just made:
 
-		>>> s='ACCNT	Checking	52	0	BANK	"1,000.00"			0	'
+		>>> s='ACCNT\\tChecking\\t52\\t0\\tBANK\\t"1,000.00"\\t\\t\\t0\\t'
 		>>> a = iif_stoacct(s)
 		>>> a.type
 		'BANK'
@@ -36,6 +36,12 @@ def iif_stoacct(s):
 	'''
 
 	flds = s.split('\t')
+	if len(flds) < 5:
+		if len(flds) == 1:
+			emsg = "only 1 field in '%s'" % (s,)
+		else:
+			emsg = "only %d fields in '%s'" % (len(flds), s)
+		raise ValueError(emsg)
 	a = account()
 	a.name = flds[1]
 	a.type = flds[4]
