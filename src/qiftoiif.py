@@ -35,7 +35,7 @@ def parseargs():
 		usage()
 	return qiffn, printtokens
 
-def runparser(parser):
+def runinterpreter(parser):
 
 	qiflist = parser.parse()
 
@@ -103,4 +103,4 @@ if __name__ == '__main__':
 	if printtokens:
 		printtokens(lexer)
 	else:
-		runparser(parser)
+		runinterpreter(parser)
