@@ -1,6 +1,6 @@
 g_accts = None
 
-class account:
+class Account:
 	name = ""
 	type = None
 	def __str__(self):
@@ -21,6 +21,7 @@ def stoaccts(s):
 			rval.append(a)
 	return rval
 
+
 def iif_stoacct(s):
 	'''Given a string from an Quickbooks IIF account list eport, return 
 	an account object.
@@ -33,6 +34,7 @@ def iif_stoacct(s):
 		'BANK'
 		>>> a.name
 		'Checking'
+
 	'''
 
 	flds = s.split('\t')
@@ -42,7 +44,7 @@ def iif_stoacct(s):
 		else:
 			emsg = "only %d fields in '%s'" % (len(flds), s)
 		raise ValueError(emsg)
-	a = account()
+	a = Account()
 	a.name = flds[1]
 	a.type = flds[4]
 	return a

@@ -48,18 +48,19 @@ def runinterpreter(parser):
 	p = interpreter.parser()
 	l = interpreter.lexer()
 	cancel = False
+	qt = interpreter.qiftransaction()
 	for t in qiflist.transactions:
-		interpreter.setqif(t)
-		while interpreter.qifpending() and not cancel:
+		qt.setqif(t)
+		while qt.pending() and not cancel:
 			try:
-				prompt = interpreter.qifprompt()
+				prompt = qt.prompt()
+				s = qt.state()
 				s = raw_input(prompt)
-				p.parse(s, lexer=l)
+				p.parse(qt.state() + s, lexer=l)
 			except EOFError:
 				cancel = True
 		if cancel:
 			break
-				
 
 #	account = ''
 #	for t in qiflist.transactions:
@@ -83,7 +84,7 @@ def runinterpreter(parser):
 
 if __name__ == '__main__':
 
-	qiffn, printtokens = parseargs()
+	qiffn, dumptokens = parseargs()
 
 	fp = open(qiffn, 'r')
 	s = fp.read()
@@ -94,7 +95,7 @@ if __name__ == '__main__':
 
 	lexer.input(s)
 
-	if printtokens:
+	if dumptokens:
 		printtokens(lexer)
 	else:
 		runinterpreter(parser)
