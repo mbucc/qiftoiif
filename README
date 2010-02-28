@@ -1,0 +1,26 @@
+A Python utility that convers QIF files to IIF files.
+
+	status: under development.
+
+Requires that you export your chart of accounts and vendor
+list from Quickbooks to the files coa.iff and vendors.iif. To
+export your chart of accounts in Quickbooks,
+
+	(1)	Open Quickbooks
+
+	(2)	Open the "File" menu
+
+	(3)	Pick "Export"
+
+	(4)	Pick "Lists to IIF File"
+	
+	(5)	Check the "Chart of Accounts" box (and only
+		that box).
+
+	(6)	Click OK
+
+	(7)	Enter coa.iff as the filename and save to
+		the same directory as the qiftoiif.py script.
+
+Vendor export is identical, but check the "Vendor List" box
+in step (5).
