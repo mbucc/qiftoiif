@@ -50,17 +50,11 @@ def runinterpreter(parser):
 	cancel = False
 	for t in qiflist.transactions:
 		interpreter.setqif(t)
-		prompt = 'qif> '
 		while interpreter.qifpending() and not cancel:
 			try:
-				print interpreter.qifprompt()
+				prompt = interpreter.qifprompt()
 				s = raw_input(prompt)
 				p.parse(s, lexer=l)
-				if interpreter.hasprospect():	
-					prompt = 'Pick number (or type in '
-					prompt += 'letters for another list): '
-				else: 
-					prompt = 'qif> '
 			except EOFError:
 				cancel = True
 		if cancel:

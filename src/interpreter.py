@@ -40,10 +40,10 @@ def d(s):
 #
 #-----------------------------------------------------------------------------
 
-states = (
-    ('vendor', 'exclusive'),
-    ('account', 'exclusive'),
-    )
+#states = (
+#    ('vendor', 'exclusive'),
+#    ('account', 'exclusive'),
+#    )
 tokens = (
     #
     # Actions
@@ -152,6 +152,10 @@ def qifprompt():
 			for p in g_trx.prospects:
 				i += 1
 				a.append("    %2d: %s" % (i, p))
+	if hasprospect():	
+		a.append('Pick number (or type in letters for another list): ')
+	else: 
+		a.append('qif> ')
 	return '\n'.join(a)
 
 def hasprospect():
@@ -175,3 +179,4 @@ def prospects():
 	if g_trx:
 		a = g_trx.prospects
 	return a
+
