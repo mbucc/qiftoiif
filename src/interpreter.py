@@ -190,11 +190,12 @@ class QifTransaction:
 		self.__dict__[attr] = val
 	def clear(self):
 		self.qifdata = None
-		self.__dict__['vendor'] = ''
-		self.vendor_prospects = [] 
+		self.__dict__['vendor'] = None
 		self.account = ''
+		self.vendor_prospects = [] 
 		self.account_prospects = []
 		self.approved = False
+		self.lasterror = ''
 	def setqif(self, qifdata):
 		self.clear()
 		self.qifdata = qifdata
@@ -203,11 +204,26 @@ class QifTransaction:
 			self.__dict__['vendor'] = self.vendor_prospects[0]
 			self.vendor_prospects = []
 			self.account = vendornametoaccount(self.vendor.name)
-	def pickvendorprospect(self, index):
+	def pickvendorprospect(self, i):
 		if self.state() != QifTransaction.PICKING_VENDOR:
 			msg = "can't set vendor in state %s" % (self.state(),)
 			raise AttributeError(msg)
-		self.__dict__['vendor'] = self.vendor_prospects[index]
+		i -= 1
+		if i < len(self.vendor_prospects):
+			self.__dict__['vendor'] = self.vendor_prospects[i]
+			self.account = vendornametoaccount(self.vendor.name)
+			self.approved = False
+		else:
+			fmt = 'Choice %d is not in list, try again.'
+			self.lasterror = fmt % (i + 1,)
+	def pickaccountprospect(self, i):
+		i -= 1
+		if i < len(self.account_prospects):
+			self.__dict__['account'] = self.account_prospects[i]
+			self.approved = False
+		else:
+			fmt = 'Choice %d is not in list, try again.'
+			self.lasterror = fmt % (i + 1,)
 	def pending(self):
 		return not self.account 
 	def approve(self):
@@ -235,6 +251,9 @@ class QifTransaction:
 				for p in self.vendor_prospects:
 					i += 1
 					a.append("    %2d: %s" % (i, p))
+				if self.lasterror:
+					fmt = '\n     **** %s\n'
+					a.append(fmt % (self.lasterror,))
 				s = 'Pick number (or type in letters '
 				s += 'for another list): '
 				a.append(s)
@@ -249,6 +268,9 @@ class QifTransaction:
 				for p in self.account_prospects:
 					i += 1
 					a.append("    %2d: %s" % (i, p))
+				if self.lasterror:
+					fmt = '\n     **** %s\n'
+					a.append(fmt % (self.lasterror,))
 				s = 'Pick number (or type in letters '
 				s += 'for another list): '
 				a.append(s)
@@ -258,6 +280,7 @@ class QifTransaction:
 				a.append(s)
 		else: 
 			a.append('qif> ')
+		self.lasterror = ''
 		return '\n'.join(a)
 
 #-----------------------------------------------------------------------------
@@ -351,11 +374,7 @@ def p_entered_vendor_string(p):
 
 def p_picked_a_vendor(p):
 	'picked_a_vendor : PICKING_VENDOR NUMBER'
-	i = int(p[2]) - 1
-	if i < len(g_trx.vendor_prospects):
-		g_trx.pickvendorprospect(i)
-	else:
-		print "%d not in list" % i
+	g_trx.pickvendorprospect(int(p[2]))
 
 def p_entered_account_string(p):
 	'entered_account_string : PICKING_ACCOUNT CHARS' 
@@ -366,11 +385,7 @@ def p_entered_account_string(p):
 
 def p_picked_an_account(p):
 	'picked_an_account : PICKING_ACCOUNT NUMBER'
-	i = int(p[2]) - 1
-	if i < len(g_trx.account_prospects):
-		g_trx.account = g_trx.account_prospects[i]
-	else:
-		print "%d not in list" % i
+	g_trx.pickaccountprospect(int(p[2]))
 
 def p_account_help(p):
 	'account_help : PICKING_ACCOUNT HELP'
