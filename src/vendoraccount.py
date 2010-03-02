@@ -118,3 +118,6 @@ def vendornametoaccount(vendor, fn = DEFAULT_DATA_FILENAME):
 	if not g_vendoraccount:
 		g_vendoraccount = VendorAccount(fn)
 	return g_vendoraccount.get(vendor)
+
+def vendoraccount():
+	return g_vendoraccount

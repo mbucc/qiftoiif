@@ -1,8 +1,9 @@
-'''This is the interpreter module.  It prompts for input and 
-modifies the state of the current QIF transaction based on
-what you enter.
+'''This is an interpreter module that prompts for input when it doesn't
+know what to do with a QIF record.  You can vendors and accounts to
+each transaction.
 
-The interpreter processes QIF data.
+The transactions are parsed from a QIF export file and encoded as a
+Python class in the qif module.
 
 	>>> import qif
 	>>> q = qif.checkingtransaction()
@@ -10,8 +11,9 @@ The interpreter processes QIF data.
 	>>> q.amount_in_pennies = 2000
 	>>> q.date = '2010-03-01'
 
-First step is to look and see if this vendor is on file.  (We do it here
-manually to over-ride the default data file used.)
+The first thing the interpreter does is to see if this vendor (AKA
+payee) is on file.  (Note that by do this manually we over-ride the
+default data file used to store the vendors.)
 
 	>>> fn = 'testvendor.iif'
 	>>> fp = open(fn, 'w')
@@ -30,6 +32,8 @@ Note that the vendor matching logic works with partial strings.
 	['A Vendor']
 
 The QifTransaction does this vendor lookup whenever a qif is loaded.
+If the vendor on the transaction is not found, we are left in the state
+named '<picking_vendor>'.
 
 	>>> qt = qiftransaction()
 	>>> qt.state()
@@ -38,7 +42,8 @@ The QifTransaction does this vendor lookup whenever a qif is loaded.
 	>>> qt.vendor_prospects
 	[]
 
-If there is only one vendor match, we progress to next state.
+If we find a match, and there is only one match, the interpreter advances
+to the next state, which is named '<picking_account>'.
 
 	>>> q.payee = 'A Vendor'
 	>>> qt.setqif(q)
@@ -47,7 +52,8 @@ If there is only one vendor match, we progress to next state.
 	>>> qt.state()
 	'<picking_account>'
 
-If there are multiple matches, we load them as prospects.
+If there are multiple vendor matches, we load them as prospects, and
+state is '<picking_vendor>'.
 
 	>>> q.payee = 'mart'
 	>>> qt.setqif(q)
@@ -69,8 +75,8 @@ tab-delimited file (with column headings).
 	>>> vendornametoaccount('Dunkin Donuts', fn)
 	'Restaurant'
 
-If we send a qif record that matches one vendor, and that vendor has an
-account, we skip to the <pending_approval> state.
+If we have a qif record that matches one vendor, and that vendor has an
+default account on file, we skip ahead to the '<pending_approval>' state.
 
 	>>> q.payee = 'Walmart'
 	>>> qt.setqif(q)
@@ -80,6 +86,53 @@ account, we skip to the <pending_approval> state.
 	'Household'
 	>>> qt.state()
 	'<pending_approval>'
+
+If we have a qif record that matches one vendor, but that vendor does
+not have a default account on file, once we enter an account that
+vendor/account combo is saved to disk.
+
+	>>> q.payee = 'Kmart'
+	>>> qt.setqif(q)
+	>>> qt.vendor.name
+	'Kmart'
+	>>> qt.state()
+	'<picking_account>'
+	>>> qt.account = 'Kids:Games'
+	>>> qt.state()
+	'<pending_approval>'
+	>>> qt.approve()
+	>>> qt.state()
+	'<done>'
+	>>> va = vendoraccount()
+	>>> va.get(qt.vendor.name)
+	'Kids:Games'
+
+Note that as a first defense against getting the state confused, the
+class does not allow you to set the vendor directly---you must set it
+via the setqif() method.
+
+	>>> qt.vendor = 'abc'
+	Traceback (most recent call last):
+	    ...
+	AttributeError: set vendor by calling setqif()
+
+If you assign an account to a transaction that has already been approved,
+it's state reverts to '<pending_approval>'.
+
+	>>> qt.state()
+	'<done>'
+	>>> qt.account = 'Gifts'
+	>>> qt.state()
+	'<pending_approval>'
+
+And finally, the vendor/account mapping only stores the latest pair.
+
+	>>> qt.approve()
+	>>> qt.state()
+	'<done>'
+	>>> va = vendoraccount()
+	>>> va.get(qt.vendor.name)
+	'Gifts'
 
 '''
 
@@ -94,7 +147,9 @@ import ply.lex as lex
 
 import coa
 import vendors
-from vendoraccount import vendornametoaccount
+from vendoraccount import \
+	vendornametoaccount, \
+	vendoraccount
 
 #-----------------------------------------------------------------------------
 #
@@ -113,18 +168,29 @@ def qiftransaction():
 class QifTransaction:
 
 	#
-	# In next three, first character must not be [a-z].  See t_CHARS.
+	# In the state variables, the first character must not be
+	# [a-z]. Otherwise, the interpreter grammar will break as the
+	# state string will match the t_CHARS token regex.
 	#
 
-	PICKING_VENDOR = '<picking_vendor>'
-	PICKING_ACCOUNT = '<picking_account>'
+	PICKING_VENDOR   = '<picking_vendor>'
+	PICKING_ACCOUNT  = '<picking_account>'
 	PENDING_APPROVAL = '<pending_approval>'
-	DONE = '<done>'
+	DONE             = '<done>'
 	def __init__(self):
 		self.clear()
+	def __setattr__(self, attr, val):
+		'''Manually setting vendor will screw up state.  So don't
+		allow this.'''
+		if attr == 'vendor':
+			raise AttributeError("set vendor by calling setqif()")
+		elif attr == 'account':
+			if self.state() == QifTransaction.DONE:
+				self.approved = False
+		self.__dict__[attr] = val
 	def clear(self):
 		self.qifdata = None
-		self.vendor = ''
+		self.__dict__['vendor'] = ''
 		self.vendor_prospects = [] 
 		self.account = ''
 		self.account_prospects = []
@@ -134,11 +200,15 @@ class QifTransaction:
 		self.qifdata = qifdata
 		self.vendor_prospects = vendors.stovendors(self.qifdata.payee)
 		if len(self.vendor_prospects) == 1:
-			self.vendor = self.vendor_prospects[0]
+			self.__dict__['vendor'] = self.vendor_prospects[0]
 			self.vendor_prospects = []
 			self.account = vendornametoaccount(self.vendor.name)
 	def pending(self):
 		return not self.account 
+	def approve(self):
+		self.approved = True
+		va = vendoraccount()
+		va.set(self.vendor.name, self.account)
 	def state(self):
 		if not self.vendor:
 			return QifTransaction.PICKING_VENDOR
@@ -333,7 +403,7 @@ def p_quit(p):
 	raise EOFError
 
 def p_error(p):
-    print "Invalid input---type .h for help."
+    print "Invalid input---type ? for help."
 
 def parser():
 	return yacc.yacc()
