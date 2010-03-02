@@ -62,26 +62,6 @@ def runinterpreter(parser):
 		if cancel:
 			break
 
-#	account = ''
-#	for t in qiflist.transactions:
-#		prospect = ''
-#		while not account:
-#			print "  ", t
-#			if prospect:
-#				print "  ", prospect
-#			chars = raw_input('qif > ')
-#			if len(chars) > 0:
-#				prospect = 'Some account'
-#			else:
-#
-#				#
-#				# User hit return to accept suggestion.
-#				# 
-#
-#				account = prospect
-#		print "assigning", account, "to", t
-#		account = ''
-
 if __name__ == '__main__':
 
 	qiffn, dumptokens = parseargs()
