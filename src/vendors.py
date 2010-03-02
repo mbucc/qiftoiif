@@ -6,21 +6,6 @@ class Vendor:
 	def __str__(self):
 		return self.name
 
-def stovendors(s):
-	'''Given a string, return all vendors that match.'''
-	
-	global g_vendors
-	if g_vendors is None:
-		fp = open('vendors.iif', 'r')
-		g_vendors = fptovendors(fp)
-		fp.close()
-
-	rval = []
-	for a in g_vendors:
-		if a.name.lower().find(s.lower()) != -1:
-			rval.append(a)
-	return rval
-
 def iif_stovendor(s):
 	'''Given a string from an Quickbooks IIF vendor list eport, return 
 	an vendor object.
@@ -33,6 +18,8 @@ def iif_stovendor(s):
 		'145 University Dr'
 	'''
 
+	if s[-1] == '\n':
+		s = s[:-1]
 	flds = s.split('\t')
 	if len(flds) < 2:
 		if len(flds) == 1:
@@ -62,5 +49,24 @@ def fptovendors(fp):
 
 		vendors.append(iif_stovendor(l))
 
-	print "Loaded %d vendors." % (len(vendors),)
+	if len(vendors) == 1:
+		print "Loaded 1 vendor."
+	else:
+		print "Loaded %d vendors." % (len(vendors),)
 	return vendors
+
+def stovendors(s, fn = 'vendors.iif'):
+	'''Given a string, return all vendors that match.'''
+	
+	global g_vendors
+	if g_vendors is None:
+		fp = open(fn,  'r')
+		g_vendors = fptovendors(fp)
+		fp.close()
+
+	rval = []
+	for a in g_vendors:
+		if a.name.lower().find(s.lower()) != -1:
+			rval.append(a)
+	return rval
+

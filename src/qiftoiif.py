@@ -54,7 +54,6 @@ def runinterpreter(parser):
 		while qt.pending() and not cancel:
 			try:
 				prompt = qt.prompt()
-				s = qt.state()
 				s = raw_input(prompt)
 				p.parse(qt.state() + s, lexer=l)
 			except EOFError:

@@ -1,4 +1,91 @@
-# Assign a vendor and account to each QIF transaction.
+'''This is the interpreter module.  It prompts for input and 
+modifies the state of the current QIF transaction based on
+what you enter.
+
+The interpreter processes QIF data.
+
+	>>> import qif
+	>>> q = qif.checkingtransaction()
+	>>> q.payee = 'My Test Payee'
+	>>> q.amount_in_pennies = 2000
+	>>> q.date = '2010-03-01'
+
+First step is to look and see if this vendor is on file.  (We do it here
+manually to over-ride the default data file used.)
+
+	>>> fn = 'testvendor.iif'
+	>>> fp = open(fn, 'w')
+	>>> fp.write('VEND\\tA Vendor\\n')
+	>>> fp.write('VEND\\tWalmart\\n')
+	>>> fp.write('VEND\\tKmart\\n')
+	>>> fp.close()
+	>>> vendors.stovendors(q.payee, fn)
+	Loaded 3 vendors.
+	[]
+
+Note that the vendor matching logic works with partial strings.
+
+	>>> v = vendors.stovendors('Ven', fn)
+	>>> [x.name for x in v]
+	['A Vendor']
+
+The QifTransaction does this vendor lookup whenever a qif is loaded.
+
+	>>> qt = qiftransaction()
+	>>> qt.state()
+	'<picking_vendor>'
+	>>> qt.setqif(q)
+	>>> qt.vendor_prospects
+	[]
+
+If there is only one vendor match, we progress to next state.
+
+	>>> q.payee = 'A Vendor'
+	>>> qt.setqif(q)
+	>>> qt.vendor.name
+	'A Vendor'
+	>>> qt.state()
+	'<picking_account>'
+
+If there are multiple matches, we load them as prospects.
+
+	>>> q.payee = 'mart'
+	>>> qt.setqif(q)
+	>>> v = qt.vendor_prospects
+	>>> [x.name for x in v]
+	['Walmart', 'Kmart']
+	>>> qt.state()
+	'<picking_vendor>'
+
+We keep track of the last account that was associated with a vendor in a
+tab-delimited file (with column headings). 
+
+	>>> fn = './testva.csv'
+	>>> fp = open(fn, 'w')
+	>>> fp.write('vendor\\taccount\\n')
+	>>> fp.write('Walmart\\tHousehold\\n')
+	>>> fp.write('Dunkin Donuts\\tRestaurant\\n')
+	>>> fp.close()
+	>>> vendornametoaccount('Dunkin Donuts', fn)
+	'Restaurant'
+
+If we send a qif record that matches one vendor, and that vendor has an
+account, we skip to the <pending_approval> state.
+
+	>>> q.payee = 'Walmart'
+	>>> qt.setqif(q)
+	>>> qt.vendor.name
+	'Walmart'
+	>>> qt.account
+	'Household'
+	>>> qt.state()
+	'<pending_approval>'
+
+'''
+
+#	>>> p = parser()
+#	>>> l = lexer()
+#	>>> p.parse(qt.state() + s, lexer=l)
 
 import sys
 
@@ -7,6 +94,7 @@ import ply.lex as lex
 
 import coa
 import vendors
+from vendoraccount import vendornametoaccount
 
 #-----------------------------------------------------------------------------
 #
@@ -30,15 +118,25 @@ class QifTransaction:
 
 	PICKING_VENDOR = '<picking_vendor>'
 	PICKING_ACCOUNT = '<picking_account>'
+	PENDING_APPROVAL = '<pending_approval>'
 	DONE = '<done>'
 	def __init__(self):
-		self.qiftrx = None
+		self.clear()
+	def clear(self):
+		self.qifdata = None
 		self.vendor = ''
 		self.vendor_prospects = [] 
 		self.account = ''
 		self.account_prospects = []
-	def setqif(self, qiftrx):
-		self.qiftrx = qiftrx
+		self.approved = False
+	def setqif(self, qifdata):
+		self.clear()
+		self.qifdata = qifdata
+		self.vendor_prospects = vendors.stovendors(self.qifdata.payee)
+		if len(self.vendor_prospects) == 1:
+			self.vendor = self.vendor_prospects[0]
+			self.vendor_prospects = []
+			self.account = vendornametoaccount(self.vendor.name)
 	def pending(self):
 		return not self.account 
 	def state(self):
@@ -46,13 +144,15 @@ class QifTransaction:
 			return QifTransaction.PICKING_VENDOR
 		elif not self.account:
 			return QifTransaction.PICKING_ACCOUNT
+		elif not self.approved:
+			return QifTransaction.PENDING_APPROVAL
 		else:
 			return QifTransaction.DONE
 	def prompt(self):
 		'''Return text to use for interpreter prompt.'''
 		a = []
-		if self.qiftrx:
-			a.append(str(self.qiftrx))
+		if self.qifdata:
+			a.append(str(self.qifdata))
 		if self.state() == QifTransaction.PICKING_VENDOR:
 			if self.vendor_prospects:
 				a.append('Vendor Prospects:' )
@@ -91,10 +191,6 @@ class QifTransaction:
 #
 #-----------------------------------------------------------------------------
 
-#states = (
-#    ('account', 'exclusive'),
-#    ('vendor', 'exclusive'),
-#    )
 tokens = (
     #
     # Actions

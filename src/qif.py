@@ -10,10 +10,6 @@ class list:
 		    len(self.transactions),
 		    "\n".join([str(t) for t in self.transactions])
 		    )
-#		return "Type : %s\n%s" % (\
-#		    self.type, 
-#		    "\n".join([str(t) for t in self.transactions])
-#		    )
 	def __str__(self):
 		return self.__unicode__()
 
@@ -42,6 +38,7 @@ class checkingtransaction(basetransaction):
 		self.check_number = None
 
 class investmenttransaction(basetransaction):
-	pass
+	def __init__(self):
+		raise NotImplementedError()
 	
 

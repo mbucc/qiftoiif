@@ -10,6 +10,8 @@ DEFAULT_DATA_FILENAME = 'vendoraccount.csv'
 V_COLNAME = 'vendor'
 A_COLNAME = 'account'
 
+g_vendoraccount = None
+
 class VendorAccount:
 	'''Wrap up a tab-delimted file that stores vendor name and account.'''
 	def __init__(self, fn = DEFAULT_DATA_FILENAME):
@@ -17,7 +19,7 @@ class VendorAccount:
 		Should handle case where no persisted data yet.
 
 			>>> va = VendorAccount('/tmp/asdflkjasdflkjasd')
-			>>> va.vendortoaccount
+			>>> va.d
 			{}
 		'''
 		csv.register_dialect(
@@ -27,7 +29,7 @@ class VendorAccount:
 		    lineterminator = '\n',
 		    )
 		self.fn = fn
-		self.vendortoaccount = {}
+		self.d = {}
 		self.fieldnameorder = (V_COLNAME, A_COLNAME)
 		try:
 			print >> sys.stderr, \
@@ -39,14 +41,14 @@ class VendorAccount:
 			for row in reader:
 				v = row[V_COLNAME]
 				a = row[A_COLNAME]
-				self.vendortoaccount[v] = a
+				self.d[v] = a
 			print >> sys.stderr, " done\n"
 			# XXX: validate accounts against coa.iif
 		except IOError, e:
 			if e.errno != errno.ENOENT:
 				raise
 	def __len__(self):
-		return len(self.vendortoaccount)
+		return len(self.d)
 	def __str__(self):
 		return "VendorAccounts from '%s'" % (self.fn,)
 	def save(self):
@@ -81,7 +83,7 @@ class VendorAccount:
 		'''
 
 		rows = [ {V_COLNAME:x, A_COLNAME:y} \
-		    for x,y in self.vendortoaccount.items() ]
+		    for x,y in self.d.items() ]
 		fp = open(self.fn, 'wb')
 		writer = csv.DictWriter(fp, self.fieldnameorder, 
 		    dialect = DIALECT_NAME)
@@ -94,15 +96,25 @@ class VendorAccount:
 			raise ValueError("VendorAccount.set(): empty vendor")
 		if not account:
 			raise ValueError("VendorAccount.set(): empty account")
-		self.vendortoaccount[vendor] = account
+		self.d[vendor] = account
 
 	def get(self, vendor):
 		'''Return default account on file for vendor, empty string
 		if none.
 		'''
+		f = 'VendorAccount.get()'
 		if not vendor:
-			raise ValueError("VendorAccount.get(): empty vendor")
-		if not self.vendortoaccount.has_key(vendor):
+			raise ValueError("%s: empty vendor" % (f,))
+		t = type(vendor)
+		if t != type('s') and t != type(u's'):
+			raise ValueError("%s: vendor is not a string" % (f,))
+		if self.d.has_key(vendor):
+			return self.d[vendor]
+		else:
 			return ''
-		return self.vendortoaccount[vendor]
 	
+def vendornametoaccount(vendor, fn = DEFAULT_DATA_FILENAME):
+	global g_vendoraccount
+	if not g_vendoraccount:
+		g_vendoraccount = VendorAccount(fn)
+	return g_vendoraccount.get(vendor)
