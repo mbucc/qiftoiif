@@ -203,6 +203,11 @@ class QifTransaction:
 			self.__dict__['vendor'] = self.vendor_prospects[0]
 			self.vendor_prospects = []
 			self.account = vendornametoaccount(self.vendor.name)
+	def pickvendorprospect(self, index):
+		if self.state() != QifTransaction.PICKING_VENDOR:
+			msg = "can't set vendor in state %s" % (self.state(),)
+			raise AttributeError(msg)
+		self.__dict__['vendor'] = self.vendor_prospects[index]
 	def pending(self):
 		return not self.account 
 	def approve(self):
@@ -346,9 +351,9 @@ def p_entered_vendor_string(p):
 
 def p_picked_a_vendor(p):
 	'picked_a_vendor : PICKING_VENDOR NUMBER'
-	i = int(p[2])
+	i = int(p[2]) - 1
 	if i < len(g_trx.vendor_prospects):
-		g_trx.vendor = g_trx.vendor_prospects[i]
+		g_trx.pickvendorprospect(i)
 	else:
 		print "%d not in list" % i
 
@@ -361,7 +366,7 @@ def p_entered_account_string(p):
 
 def p_picked_an_account(p):
 	'picked_an_account : PICKING_ACCOUNT NUMBER'
-	i = int(p[2])
+	i = int(p[2]) - 1
 	if i < len(g_trx.account_prospects):
 		g_trx.account = g_trx.account_prospects[i]
 	else:
