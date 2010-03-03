@@ -158,6 +158,7 @@ from vendoraccount import \
 #-----------------------------------------------------------------------------
 
 g_trx = None
+g_indent = 4
 
 def qiftransaction():
 	global g_trx
@@ -242,44 +243,39 @@ class QifTransaction:
 	def prompt(self):
 		'''Return text to use for interpreter prompt.'''
 		a = []
+		indent1 = ' ' * g_indent
+		indent2 = ' ' * 2 * g_indent
+		promptfmt = '%25s> '
 		if self.qifdata:
 			a.append(str(self.qifdata))
 		if self.state() == QifTransaction.PICKING_VENDOR:
 			if self.vendor_prospects:
-				a.append('Vendor Prospects:' )
+				a.append(indent1 + 'Vendor Prospects:' )
 				i = 0
 				for p in self.vendor_prospects:
 					i += 1
-					a.append("    %2d: %s" % (i, p))
+					a.append(indent2 + '%2d: %s' % (i, p))
 				if self.lasterror:
-					fmt = '\n     **** %s\n'
+					fmt = '\n' + indent1 + '**** %s\n'
 					a.append(fmt % (self.lasterror,))
-				s = 'Pick number (or type in letters '
-				s += 'for another list): '
-				a.append(s)
+				a.append(promptfmt % ('number',))
 			else:
-				s = 'Type in some letters of the '
-				s += 'vendor you want: '
-				a.append(s)
+				a.append(promptfmt % ('vendor',))
 		elif self.state() == QifTransaction.PICKING_ACCOUNT:
 			if self.account_prospects:
-				a.append('Account Prospects:' )
+				a.append(indent1 + 'Account Prospects:' )
 				i = 0
 				for p in self.account_prospects:
 					i += 1
-					a.append("    %2d: %s" % (i, p))
+					a.append(indent2 + '%2d: %s' % (i, p))
 				if self.lasterror:
-					fmt = '\n     **** %s\n'
+					fmt = '\n' + indent1 + '**** %s\n'
 					a.append(fmt % (self.lasterror,))
-				s = 'Pick number (or type in letters '
-				s += 'for another list): '
-				a.append(s)
+				a.append(promptfmt % ('number',))
 			else:
-				s = 'Type in some letters of the '
-				s += 'account you want: '
-				a.append(s)
+				a.append(promptfmt % ('account',))
 		else: 
-			a.append('qif> ')
+			a.append(promptfmt % ('qif',))
 		self.lasterror = ''
 		return '\n'.join(a)
 
