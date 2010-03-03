@@ -106,4 +106,4 @@ def p_error(p):
 
 
 def parser():
-	return yacc.yacc()
+	return yacc.yacc(errorlog=yacc.NullLogger())

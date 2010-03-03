@@ -361,4 +361,4 @@ def t_error(t):
 
 
 def lexer():
-	return lex.lex()
+	return lex.lex(errorlog=lex.NullLogger())

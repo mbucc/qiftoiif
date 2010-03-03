@@ -32,8 +32,6 @@ class VendorAccount:
 		self.d = {}
 		self.fieldnameorder = (V_COLNAME, A_COLNAME)
 		try:
-			print >> sys.stderr, \
-			    "\nVendorAccount: loading '%s' ..." % (self.fn, )
 			reader = csv.DictReader(
 			    open(self.fn, 'rb'), 
 			    dialect = DIALECT_NAME
@@ -42,11 +40,16 @@ class VendorAccount:
 				v = row[V_COLNAME]
 				a = row[A_COLNAME]
 				self.d[v] = a
-			print >> sys.stderr, " done\n"
+			print >> sys.stderr, \
+			    "loaded %d entries from '%s'." % \
+			    (len(self.d), self.fn)
 			# XXX: validate accounts against coa.iif
 		except IOError, e:
 			if e.errno != errno.ENOENT:
 				raise
+			print >> sys.stderr, \
+			    "loaded 0 entries from '%s', none saved  yet." % \
+			    (self.fn,)
 	def __len__(self):
 		return len(self.d)
 	def __str__(self):

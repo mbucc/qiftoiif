@@ -48,11 +48,6 @@ def fptovendors(fp):
 			continue
 
 		vendors.append(iif_stovendor(l))
-
-	if len(vendors) == 1:
-		print "Loaded 1 vendor."
-	else:
-		print "Loaded %d vendors." % (len(vendors),)
 	return vendors
 
 def stovendors(s, fn = 'vendors.iif'):
@@ -62,6 +57,10 @@ def stovendors(s, fn = 'vendors.iif'):
 	if g_vendors is None:
 		fp = open(fn,  'r')
 		g_vendors = fptovendors(fp)
+		if len(g_vendors) == 1:
+			print "Loaded 1 vendor from %s." % (fn,)
+		else:
+			print "Loaded %d vendors from %s" % (len(g_vendors),fn)
 		fp.close()
 
 	rval = []

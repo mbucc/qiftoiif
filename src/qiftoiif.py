@@ -3,9 +3,13 @@
 
 import sys
 
-import tokens
+import coa
 import grammar
 import interpreter
+import tokens
+import vendoraccount
+import vendors
+		
 
 def printtokens(lexer):
 	while 1:
@@ -77,4 +81,13 @@ if __name__ == '__main__':
 	if dumptokens:
 		printtokens(lexer)
 	else:
+		#
+		# Force data file to load.
+		#
+
+		bogus = 'zzz123abcxyz'
+		coa.stoaccts(bogus)
+		vendors.stovendors(bogus)
+		vendoraccount.vendornametoaccount(bogus)
+
 		runinterpreter(parser)

@@ -296,7 +296,6 @@ tokens = (
 
     'HELP',
     'QUIT',
-    'ACCOUNT',
     'CHARS',
     'NUMBER',
     'PICKING_VENDOR',
