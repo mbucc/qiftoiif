@@ -214,6 +214,7 @@ class QifTransaction:
 			self.__dict__['vendor'] = self.vendor_prospects[i]
 			self.account = vendornametoaccount(self.vendor.name)
 			self.approved = False
+			self.qifdata.payee = self.vendor
 		else:
 			fmt = 'Choice %d is not in list, try again.'
 			self.lasterror = fmt % (i + 1,)
