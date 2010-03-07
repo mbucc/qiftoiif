@@ -22,7 +22,7 @@ default data file used to store the vendors.)
 	>>> fp.write('VEND\\tKmart\\n')
 	>>> fp.close()
 	>>> vendors.stovendors(q.payee, fn)
-	Loaded 3 vendors.
+	Loaded 3 vendors from testvendor.iif
 	[]
 
 Note that the vendor matching logic works with partial strings.
@@ -66,6 +66,7 @@ state is '<picking_vendor>'.
 We keep track of the last account that was associated with a vendor in a
 tab-delimited file (with column headings). 
 
+	>>> g_vendoraccount = None
 	>>> fn = './testva.csv'
 	>>> fp = open(fn, 'w')
 	>>> fp.write('vendor\\taccount\\n')
@@ -149,7 +150,8 @@ import coa
 import vendors
 from vendoraccount import \
 	vendornametoaccount, \
-	vendoraccount
+	vendoraccount, \
+	g_vendoraccount
 
 #-----------------------------------------------------------------------------
 #
@@ -227,7 +229,7 @@ class QifTransaction:
 			fmt = 'Choice %d is not in list, try again.'
 			self.lasterror = fmt % (i + 1,)
 	def pending(self):
-		return not self.account 
+		return not self.approved
 	def approve(self):
 		self.approved = True
 		va = vendoraccount()
@@ -248,7 +250,11 @@ class QifTransaction:
 		indent2 = ' ' * 2 * g_indent
 		promptfmt = '%25s> '
 		if self.qifdata:
-			a.append(str(self.qifdata))
+			s = str(self.qifdata)
+			if self.state() == QifTransaction.PENDING_APPROVAL:
+				s = s + "    " + str(self.account)
+			s = s[:78]	# trim to 78 chars wide
+			a.append(s)
 		if self.state() == QifTransaction.PICKING_VENDOR:
 			if self.vendor_prospects:
 				a.append(indent1 + 'Vendor Prospects:' )
@@ -275,6 +281,8 @@ class QifTransaction:
 				a.append(promptfmt % ('number',))
 			else:
 				a.append(promptfmt % ('account',))
+		elif self.state() == QifTransaction.PENDING_APPROVAL:
+			a.append(promptfmt % ('OK? (y/n)',))
 		else: 
 			a.append(promptfmt % ('qif',))
 		self.lasterror = ''
@@ -297,6 +305,7 @@ tokens = (
     'NUMBER',
     'PICKING_VENDOR',
     'PICKING_ACCOUNT',
+    'PENDING_APPROVAL',
     )
 t_HELP			= r'\?'
 t_QUIT			= r'\.q'
@@ -304,6 +313,7 @@ t_CHARS			= r'[a-z].*$'
 t_ANY_NUMBER		= r'\d+'
 t_PICKING_VENDOR	= QifTransaction.PICKING_VENDOR
 t_PICKING_ACCOUNT	= QifTransaction.PICKING_ACCOUNT
+t_PENDING_APPROVAL	= QifTransaction.PENDING_APPROVAL
 
 def t_error(t):
 	t.lexer.skip(len(t.value))
@@ -343,6 +353,7 @@ def lexer():
 	'''
 
         return lex.lex()
+        #return lex.lex(debug=1)
 
 
 #-----------------------------------------------------------------------------
@@ -358,7 +369,8 @@ def p_command(p):
 		| entered_vendor_string
 		| picked_a_vendor
 		| entered_account_string
-		| picked_an_account'''
+		| picked_an_account
+		| answered_approval_question'''
 	p[0] = p[1]
 
 def p_entered_vendor_string(p):
@@ -366,7 +378,7 @@ def p_entered_vendor_string(p):
 	global g_trx
 	g_trx.vendor_prospects = vendors.stovendors(str(p[2]))
 	if len(g_trx.vendor_prospects) == 0:
-		print "   *****  No vendor matches found!"
+		print "   *****  No vendor matches found."
 
 def p_picked_a_vendor(p):
 	'picked_a_vendor : PICKING_VENDOR NUMBER'
@@ -377,23 +389,28 @@ def p_entered_account_string(p):
 	global g_trx
 	g_trx.account_prospects = coa.stoaccts(str(p[2]))
 	if len(g_trx.account_prospects) == 0:
-		print "   *****  No account matches found!"
+		print "   *****  No account matches found."
 
 def p_picked_an_account(p):
 	'picked_an_account : PICKING_ACCOUNT NUMBER'
 	g_trx.pickaccountprospect(int(p[2]))
 
+def p_answered_approval_question(p):
+	'answered_approval_question : PENDING_APPROVAL CHARS'
+	global g_trx
+	s = p[2].lower()
+	if s in ('y', 'yes', 'ye'):
+		g_trx.approve()
+	elif s in ('n', 'no'):
+		g_trx.account = ''
+	else:
+		print "   *****  Please enter y[es] or n[o]"
+
+
 def p_account_help(p):
 	'account_help : PICKING_ACCOUNT HELP'
 	msg = '''
     Type a few letters of the account name and hit enter.
-
-    Then enter then number of the account you would
-    like to assign to this transaction.
-
-Commands:
-	?  - display this help message.
-	.q - exit qif interpreter.
 '''
 	print msg
 
@@ -401,13 +418,6 @@ def p_vendor_help(p):
 	'vendor_help : PICKING_VENDOR HELP'
 	msg = '''
     Type a few letters of the vendor name and hit enter.
-
-    Then enter then number of the vendor you would
-    like to assign to this transaction.
-
-Commands:
-	?  - help
-	.q - exit
 '''
 	print msg
 
@@ -415,11 +425,13 @@ def p_quit(p):
 	'''quit : QUIT
 		| PICKING_VENDOR QUIT
 		| PICKING_ACCOUNT QUIT
+		| PENDING_APPROVAL QUIT
 	''' 
 	raise EOFError
 
 def p_error(p):
-    print "Invalid input---type ? for help."
+    print "Invalid input---type ? for help or .q to quit."
 
 def parser():
 	return yacc.yacc()
+	#return yacc.yacc(debug=1)
