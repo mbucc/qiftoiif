@@ -118,7 +118,7 @@ class VendorAccount:
 	
 def vendornametoaccount(vendor, fn = DEFAULT_DATA_FILENAME):
 	global g_vendoraccount
-	if g_vendoraccount is None:
+	if g_vendoraccount is None or fn != DEFAULT_DATA_FILENAME:
 		g_vendoraccount = VendorAccount(fn)
 	return g_vendoraccount.get(vendor)
 
