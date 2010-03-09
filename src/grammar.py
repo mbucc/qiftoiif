@@ -98,7 +98,10 @@ def p_category_or_transfer(p):
 def p_check_number(p):
 	'check_number : CHECK_NUMBER'
 	global g_cqif
-	g_cqif.check_number = p[1]
+	if p[1]:
+		g_cqif.check_number = int(p[1])
+	else:
+		g_cqif.check_number = None
 	d('p_check_number: %s' % p[1])
 
 def p_error(p):

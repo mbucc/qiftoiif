@@ -9,7 +9,7 @@ import interpreter
 import tokens
 import vendoraccount
 import vendors
-		
+import iif
 
 def printtokens(lexer):
 	while 1:
@@ -19,29 +19,31 @@ def printtokens(lexer):
 		print tok
 
 def usage():
-	usage = "usage: %s [-l] <qiffn>"
+	usage = "usage: %s [-l] <qiffn> <iiffn> <acct>"
 	print >> sys.stderr, usage % (sys.argv[0],)
 	sys.exit(1)
 
 def parseargs():
 	qiffn = ''
 	printtokens = False
-	if len(sys.argv) == 2:
+	if len(sys.argv) == 4:
 		qiffn = sys.argv[1]
-	elif len(sys.argv) == 3:
+		iiffn = sys.argv[2]
+		acct = sys.argv[3]
+	elif len(sys.argv) == 5:
 		arg = sys.argv[1]
 		if arg  == '-l':
 			printtokens = True
 		else:
 			usage()
 		qiffn = sys.argv[2]
+		iiffn = sys.argv[3]
+		acct = sys.argv[4]
 	else:
 		usage()
-	return qiffn, printtokens
+	return qiffn, printtokens, iiffn, acct
 
-def runinterpreter(parser):
-
-	qiflist = parser.parse()
+def runinterpreter(qiflist, iiffp, acct):
 
 	#
 	# The yacc.parse() function is bound to the last parser loaded.
@@ -53,6 +55,7 @@ def runinterpreter(parser):
 	l = interpreter.lexer()
 	cancel = False
 	qt = interpreter.qiftransaction()
+	iiffp.write(iif.header())
 	for t in qiflist.transactions:
 		qt.setqif(t)
 		while qt.pending() and not cancel:
@@ -64,25 +67,32 @@ def runinterpreter(parser):
 				cancel = True
 		if cancel:
 			break
+		iiffp.write(iif.qiftrxtoiif(qt, acct))
+		iiffp.flush()
 
 if __name__ == '__main__':
 
-	qiffn, dumptokens = parseargs()
+	qiffn, dumptokens, iiffn, acct = parseargs()
+
+	#
+	# Read in QIF data and input to lexer.
+	#
 
 	fp = open(qiffn, 'r')
 	s = fp.read()
 	fp.close()
-
 	lexer = tokens.lexer()
 	parser = grammar.parser()
-
 	lexer.input(s)
 
 	if dumptokens:
 		printtokens(lexer)
 	else:
+
+		qiflist = parser.parse()
+
 		#
-		# Force data file to load.
+		# Force data files to load.
 		#
 
 		bogus = 'zzz123abcxyz'
@@ -90,4 +100,6 @@ if __name__ == '__main__':
 		vendors.stovendors(bogus)
 		vendoraccount.vendornametoaccount(bogus)
 
-		runinterpreter(parser)
+		fp = open(iiffn, 'w')
+		runinterpreter(qiflist, fp, acct)
+		fp.close()
