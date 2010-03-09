@@ -1,14 +1,21 @@
-A Python utility that convers QIF files to IIF files.
+A Python utility to convert QIF files to IIF files.
 
-	status: under development.
+For Luddites like me who can't quite get used to the idea of
+using Mint for finances, are stuck with QuickBooks, and have
+banks that refuse to pay the Intuit charge for web connect.
+
+	status: testing
 
 To run, 
 
-	python src/qiftoiif.py <yourfile.qif>
+    python src/qiftoiif.py <in.qif> <out.iif> <acct_name>
 
 Requires that you export your chart of accounts and vendor
-list from Quickbooks to the files coa.iff and vendors.iif. To
-export your chart of accounts in Quickbooks,
+list from Quickbooks to the files coa.iff and vendors.iif. 
+These two files are expected to be in the current working
+directory of python.
+
+To export your chart of accounts in Quickbooks,
 
 	(1)	Open Quickbooks
 
@@ -28,3 +35,24 @@ export your chart of accounts in Quickbooks,
 
 Vendor export is identical, but check the "Vendor List" box
 in step (5).
+
+Files in ./src/:
+
+	tokens.py + grammar.py
+		Lex and yacc combo to parse qif files.
+	qif.py
+		Data structures that store result of parsing
+		qif file.
+	coa.py + vendors.py
+		Interface to Chart of Accounts and Vendor list
+		exports from QuickBooks.
+	interpreter.py
+		Another lex and yacc combo, this time to parse
+		user input in response to prompts about current
+		QIF record.  Lots of code, but main purpose
+		is to assign an account to the payee.
+	vendoraccount.py
+		Save account/vendor associations to save data entry.
+		One QuickBooks feature I really like.
+	iif.py
+		Logic that outputs IIF text.
