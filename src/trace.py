@@ -1,2 +1,2 @@
-grammar = 0
+grammar = 1
 interpreter = 0

@@ -21,6 +21,23 @@ class checkingtransaction(basetransaction):
 		self.cleared_status = None
 		self.date = None
 		self.memo = None
+		self.security_name = ''
+		self.security_price = 0
+		self.share_quantity = 0
+		self.commission_cost = 0
+	def __str__(self):
+		return "%10s%12.2f    %s" %  ( \
+		    self.date, 
+		    self.amount_in_pennies/100.0,
+		    self.security_name
+		    )
+
+class investmenttransaction(basetransaction):
+	def __init__(self):
+		self.amount_in_pennies = 0.0
+		self.cleared_status = None
+		self.date = None
+		self.memo = None
 		self.payee = None
 		self.payee_address = None
 		self.category_or_transfer = None
@@ -31,7 +48,3 @@ class checkingtransaction(basetransaction):
 		    self.amount_in_pennies/100.0,
 		    self.payee
 		    )
-
-class investmenttransaction(basetransaction):
-	def __init__(self):
-		raise NotImplementedError()

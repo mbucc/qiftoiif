@@ -11,7 +11,7 @@ import ply.lex as lex
 tokens = (
 
 	#
-	# Record types.  Currently, we only support checking.
+	# Record types.  Currently, we only support checking + investment.
 	#
 
 	'ASSET',
@@ -159,28 +159,32 @@ def t_CLEARED_STATUS(t):
 	return t
 
 #
-# Number of the check. Can also be "Deposit", "Transfer", "Print",
-# "ATM", "EFT".        
+# Also, Investment Action (Buy, Sell, etc).
+#
+#		Used in Investment
+#		NBuy
+#
+#	Note:
+#
+#	Must come before t_CHECK_NUMBER.  Order of functions
+#	determines precedence and if this comes later check #
+#	always matches first.
+#
+
+def t_INVESTMENT_ACTION(t):
+	r'N(Buy|ReinvDiv|Div|Sell)\s*'
+	t.value = t.value[1:]
+	t.value = t.value.rstrip()
+	return t
+#
+# Number of the check.  Blank for non-check transactions.
 #
 #		Used in Banking, Splits
 #		N1001
 #
 
 def t_CHECK_NUMBER(t):
-	r'N[0-9]*\s*'
-	t.value = t.value[1:]
-	t.value = t.value.rstrip()
-	return t
-
-
-# Also, Investment Action (Buy, Sell, etc).
-#
-#		Used in Investment
-#		NBuy
-#
-
-def t_INVESTMENT_ACTION(t):
-	r'N(Buy|ReinvDiv|Div|Sell)\s*'
+	r'N([0-9]+)*\s*'
 	t.value = t.value[1:]
 	t.value = t.value.rstrip()
 	return t
